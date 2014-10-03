@@ -1,13 +1,16 @@
-package video
-package swing
+package video.swing
 
 import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
 import java.awt.Color
 import java.awt.Graphics
-import org.reactivestreams.api.Consumer
 import akka.actor.{ActorRef, ActorRefFactory, Props}
-import stream.actor.ActorConsumer
+import akka.stream.actor.ActorSubscriber
+import akka.stream.actor.WatermarkRequestStrategy
+import akka.stream.actor.ActorSubscriberMessage
+import org.reactivestreams.Subscriber
+import video.Frame
+
 
 /**
  * A video panel which can consume Frame elements and display them in the UI
@@ -36,13 +39,13 @@ private[swing] class VideoPanel extends JComponent {
       g.drawImage(frame.image, 0, 0, getWidth, getHeight, 0, 0, frame.image.getWidth, frame.image.getHeight, color, this)
     }
 }
-private[swing] class VideoPanelActor(panel: VideoPanel) extends ActorConsumer {
-  override val requestStrategy = ActorConsumer.WatermarkRequestStrategy(10,2)
+private[swing] class VideoPanelActor(panel: VideoPanel) extends ActorSubscriber {
+  override val requestStrategy = WatermarkRequestStrategy(10,2)
   private var last = System.nanoTime()
   private var lastTick = 0L
 
   def receive: Receive = {
-    case ActorConsumer.OnNext(frame: Frame) =>
+    case ActorSubscriberMessage.OnNext(frame: Frame) =>
       // Here is some gunk to slow down rendering to the appropriate frame rate.
       concurrent.blocking {
         val tick = TimeUnit.NANOSECONDS.convert(frame.timeStamp, frame.timeUnit)
@@ -66,9 +69,9 @@ private[swing] class VideoPanelActor(panel: VideoPanel) extends ActorConsumer {
         last = System.nanoTime
       }
       panel.updateFrame(frame)
-    case ActorConsumer.OnComplete =>
+    case ActorSubscriberMessage.OnComplete =>
       // TODO - blank out the screen
-    case ActorConsumer.OnError(err) =>
+    case ActorSubscriberMessage.OnError(err) =>
       // TODO - display error.
   }
 }
@@ -84,11 +87,11 @@ object VideoPanel  {
   }
 
   /** Construct a video panel which consumes frames and renders them on the swing component. */
-  def apply(factory: ActorRefFactory): (Consumer[Frame], JComponent) = {
+  def apply(factory: ActorRefFactory): (Subscriber[Frame], JComponent) = {
     // TODO - this is horribly wrong for error handling, but the alternative is more annoying and
     // much harder to implement (rewiring actors to physical swing controls when restarted).
     val panel = new VideoPanel()
     val actorRef = factory.actorOf(props(panel).withDispatcher("swing-dispatcher"), "video-panel")
-    (ActorConsumer[Frame](actorRef), panel)
+    (ActorSubscriber[Frame](actorRef), panel)
   }
 }

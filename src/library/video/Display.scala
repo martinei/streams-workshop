@@ -1,13 +1,12 @@
 package video
 
-import org.reactivestreams.api.{
-Producer,
-Consumer
-}
 import javax.swing.{JComponent, JPanel, JFrame}
 import akka.actor.{ActorRef, ActorSystem}
 import java.awt.{BorderLayout, Component, GridLayout, Dimension}
 import java.awt.event.{WindowAdapter, WindowEvent}
+import org.reactivestreams.Subscriber
+import org.reactivestreams.Publisher
+
 
 
 sealed trait UIControl
@@ -30,7 +29,7 @@ class VideoPlayerDisplay(display: JComponent, controls: JComponent, width: Int, 
 
 object Display {
 
-  def create(system: ActorSystem): Consumer[Frame] = {
+  def create(system: ActorSystem): Subscriber[Frame] = {
     val (consumer, display) = swing.VideoPanel(system)
     createFrame(system, display)
     consumer
@@ -48,7 +47,7 @@ object Display {
     val frame = inFrame("Video Preview", display, system, width, height)
   }
 
-  def createPlayer(system: ActorSystem): (Producer[UIControl], Consumer[Frame]) = {
+  def createPlayer(system: ActorSystem): (Publisher[UIControl], Subscriber[Frame]) = {
     val (consumer, display) = swing.VideoPanel(system)
     val (producer, controls) = swing.PlayerControls(system)
 

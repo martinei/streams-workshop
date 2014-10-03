@@ -1,30 +1,32 @@
 package sample.stream
 
 import akka.actor.ActorSystem
-import akka.stream.{FlowMaterializer, MaterializerSettings}
+import akka.stream.FlowMaterializer
 import video.Frame
-import org.reactivestreams.api.Producer
 import java.io.File
 import akka.stream.scaladsl.Flow
+import org.reactivestreams.Publisher
+import akka.stream.MaterializerSettings
 
 object FrameCount {
 
   /**
    * run:
-   *    ./activator 'runMain sample.stream.FrameCount file.mp4'
+   *    ./activator 'runMain sample.stream.FrameCount'
    *
    */
+  
   def main(args: Array[String]): Unit = {
     implicit val system = ActorSystem()
-    val settings = MaterializerSettings()
+    val settings = MaterializerSettings(system)
 
-    val videoStream: Producer[Frame] = video.FFMpeg.readFile(new File("goose.mp4"), system)
+    val videoStream: Publisher[Frame] = video.FFMpeg.readFile(new File("goose.mp4"), system)
     Flow(videoStream).fold(0) { (count, frame) =>
       val nextCount = count + 1
       System.out.print(f"\rFRAME ${nextCount}%05d")
       nextCount
-    }.onComplete(FlowMaterializer(settings)) {
-      case _ => system.shutdown()
-    }
+    }.onComplete {
+        case _ => system.shutdown()    
+    }(FlowMaterializer(settings))
   }
 }

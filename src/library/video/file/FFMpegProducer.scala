@@ -1,5 +1,4 @@
-package video
-package file
+package video.file
 
 import java.io.File
 import com.xuggle.mediatool.ToolFactory
@@ -8,20 +7,22 @@ import com.xuggle.mediatool.event.ICloseEvent
 import com.xuggle.mediatool.event.IVideoPictureEvent
 import com.xuggle.xuggler.Utils
 import com.xuggle.xuggler.IError
-import org.reactivestreams.api.Producer
 import akka.actor.{ActorRef, ActorRefFactory, Props}
-import stream.actor.ActorProducer
+import akka.stream.actor.ActorPublisher
+import video.Frame
+import akka.stream.actor.ActorPublisherMessage
+import org.reactivestreams.Publisher
 
 
 case class FFMpegError(raw: IError) extends Exception(raw.getDescription)
 
-/** An actor which reads the given file on demand. */
-private[video] class FFMpegProducer(file: File) extends ActorProducer[Frame] {
+private[video] class FFMpegProducer(file: File) extends ActorPublisher[Frame] {
+   /** Open the reader. */
+  private val reader = ToolFactory.makeReader(file.getAbsolutePath)
+  
   private var closed: Boolean = false
   private var frameCount: Long = 0L
   
-  /** Open the reader. */  
-  private val reader = ToolFactory.makeReader(file.getAbsolutePath)
   /** Register a listener that will forward all events down the Reactive Streams chain. */
   reader.addListener(new MediaListenerAdapter() {
     override def onVideoPicture(e: IVideoPictureEvent): Unit = {
@@ -31,17 +32,19 @@ private[video] class FFMpegProducer(file: File) extends ActorProducer[Frame] {
       }
     }
   })
-  /** Our actual behavior. */
+  
   override def receive: Receive = {
-    case ActorProducer.Request(elements) => read(elements)
-    case ActorProducer.Cancel =>
+    case ActorPublisherMessage.Request(elements) => read(elements)
+    case ActorPublisherMessage.Cancel =>
       reader.close()
       context stop self
   }
-  
-  // Reads the given number of frames, or bails on error.
+
+
+  /** Our actual behavior. */  
+  // Reads the given number of frames, or bails on error.`
   // Note: we have to track frames via the listener we have on the reader.
-  private def read(frames: Int): Unit = {
+  private def read(frames: Long): Unit = {
     val done = frameCount + frames
     // Close event should automatically occur.
     while(!closed && frameCount < done) {
@@ -61,11 +64,12 @@ private[video] class FFMpegProducer(file: File) extends ActorProducer[Frame] {
     }
   }
 }
+
 object FFMpegProducer {
 
   def make(factory: ActorRefFactory, file: File): ActorRef =
     factory.actorOf(Props(new FFMpegProducer(file)))
   
-  def apply(factory: ActorRefFactory, file: File): Producer[Frame] = 
-    ActorProducer(make(factory, file))
+  def apply(factory: ActorRefFactory, file: File): Publisher[Frame] = 
+    ActorPublisher(make(factory, file))
 }
