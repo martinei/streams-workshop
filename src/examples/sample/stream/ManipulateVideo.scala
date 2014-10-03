@@ -17,8 +17,7 @@ object ManipulateVideo {
    */
   def main(args: Array[String]): Unit = {
     implicit val system = ActorSystem()
-    val settings = MaterializerSettings(system)
-    implicit val mat = FlowMaterializer(settings)
+    implicit val materializer = FlowMaterializer()
     
     val fileProducer: Publisher[Frame] = video.FFMpeg.readFile(new File(args(0)), system)
     val flow = Flow(fileProducer)

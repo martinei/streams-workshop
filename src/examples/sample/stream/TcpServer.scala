@@ -29,11 +29,10 @@ object TcpServer {
   def server(system: ActorSystem, serverAddress: InetSocketAddress): Unit = {
     implicit val sys = system
     implicit val ec = system.dispatcher
-    val settings = MaterializerSettings(system)
-    implicit val materializer = FlowMaterializer(settings)
+    implicit val materializer = FlowMaterializer()
     implicit val timeout = Timeout(5.seconds)
 
-    val serverFuture = (IO(StreamTcp) ? StreamTcp.Bind(localAddress = serverAddress, settings = Some(settings)))
+    val serverFuture = (IO(StreamTcp) ? StreamTcp.Bind(localAddress = serverAddress))
 
     serverFuture.onSuccess {
       case serverBinding: StreamTcp.TcpServerBinding =>
@@ -43,6 +42,7 @@ object TcpServer {
           println("Client connected from: " + conn.remoteAddress)
           conn.inputStream.subscribe(conn.outputStream)
         }(materializer)
+
     }
 
     serverFuture.onFailure {

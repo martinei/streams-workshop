@@ -12,14 +12,13 @@ object FrameCount {
 
   /**
    * run:
-   *    ./activator 'runMain sample.stream.FrameCount'
+   *    ./activator 'runMain sample.stream.FrameCount file.mp4'
    *
    */
   
   def main(args: Array[String]): Unit = {
     implicit val system = ActorSystem()
-    val settings = MaterializerSettings(system)
-
+    implicit val materializer = FlowMaterializer()
     val videoStream: Publisher[Frame] = video.FFMpeg.readFile(new File("goose.mp4"), system)
     Flow(videoStream).fold(0) { (count, frame) =>
       val nextCount = count + 1
@@ -27,6 +26,6 @@ object FrameCount {
       nextCount
     }.onComplete {
         case _ => system.shutdown()    
-    }(FlowMaterializer(settings))
+    }
   }
 }

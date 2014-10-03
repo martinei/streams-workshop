@@ -37,11 +37,11 @@ object TcpClient {
   def client(system: ActorSystem, serverAddress: InetSocketAddress): Unit = {
     implicit val sys = system
     implicit val ec = system.dispatcher
-    val settings = MaterializerSettings(system)
-    implicit val materializer = FlowMaterializer(settings)
+    implicit val materializer = FlowMaterializer()
+    
     implicit val timeout = Timeout(5.seconds)
 
-    val clientFuture = (IO(StreamTcp) ? StreamTcp.Connect(remoteAddress = serverAddress, materializerSettings = Some(settings)))
+    val clientFuture = (IO(StreamTcp) ? StreamTcp.Connect(remoteAddress = serverAddress))
     clientFuture.onSuccess {
       case clientBinding: StreamTcp.OutgoingTcpConnection =>
         val testInput = ('a' to 'z').map(ByteString(_))
