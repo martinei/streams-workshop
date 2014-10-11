@@ -12,7 +12,7 @@ object FrameCount {
 
   /**
    * run:
-   *    ./activator 'runMain sample.stream.FrameCount file.mp4'
+   *    ./activator 'runMain sample.stream.FrameCount'
    *
    */
   

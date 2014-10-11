@@ -5,9 +5,9 @@ version := "1.0"
 scalaVersion := "2.11.1"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-stream-experimental" % "0.7",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.3",
-  "com.typesafe.akka" %% "akka-cluster" % "2.3.3",
+  "com.typesafe.akka" %% "akka-stream-experimental" % "0.9",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.6",
+  "com.typesafe.akka" %% "akka-cluster" % "2.3.6",
   "org.boofcv" % "xuggler" % "0.17",
   "junit" % "junit" % "4.11",
   "org.scalatest" %% "scalatest" % "2.2.0",
